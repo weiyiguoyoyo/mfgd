@@ -31,29 +31,32 @@ def index(request):
 
     return HttpResponse(r, content_type='text/plain')
 
+def find_branch_or_commit(ident):
+    try:
+        obj = repo.get(ident)
+        if obj.type_str != "commit":
+            raise ValueError()
+        return obj
+    except:
+        try:
+            branch_ref = repo.references["refs/heads/%s" %ident]
+            return repo.get(branch_ref.target)
+        except:
+            return None
+
+
 def tree(request, commit, path):
     ctx = {}
 
-    try:
-        obj = repo.get(commit)
-        if obj.type_str != "commit":
-            raise ValueError()
-    except:
-        return HttpResponse("Invalid commit id")
-
     # NOTE: this doesn't filter for subtree paths just yet
 
-    return HttpResponse(str_tree(obj.tree), content_type="text/plain")
+    return HttpResponse(str_tree(find_branch_or_commit(commit).tree),
+                        content_type="text/plain")
 
 def blob(request, commit, path):
     ctx = {}
 
-    try:
-        obj = repo.get(commit)
-        if obj.type_str != "commit":
-            raise ValueError()
-    except:
-        return HttpResponse("Invalid commit id")
+    obj = find_branch_or_commit(commit)
 
     try:
         blob = obj.tree[path]
