@@ -1,35 +1,41 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from pathlib import Path
-from pygit2 import *
+import pygit2
+
+from mfgd_app import utils
+from mfgd_app.utils import ObjectType
 
 # Directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Repo
-repo = Repository(BASE_DIR / ".git")
+repo = pygit2.Repository(BASE_DIR / ".git")
+
 
 def format_author(commit):
-    return "%s <%s>" %(commit.author.name, commit.author.email)
+    return "%s <%s>" % (commit.author.name, commit.author.email)
 
-def str_tree(tree,indent=0):
+
+def str_tree(tree, indent=0):
     r = ""
     for obj in tree:
         r += "  " * indent + obj.name + "\n"
         if obj.type_str == "tree":
-            r += str_tree(obj, indent+1)
+            r += str_tree(obj, indent + 1)
     return r
+
 
 def index(request):
     branch = next(iter(repo.branches.local))
-    branch_ref = repo.references["refs/heads/%s" %branch]
+    branch_ref = repo.references["refs/heads/%s" % branch]
 
     r = ""
     for commit in repo.walk(branch_ref.target, GIT_SORT_TOPOLOGICAL):
-        r += "%s\n%s\n%s\n" %(commit.oid, format_author(commit), commit.message)
+        r += "%s\n%s\n%s\n" % (commit.oid, format_author(commit), commit.message)
         r += str_tree(commit.tree)
         r += "\n"
 
-    return HttpResponse(r, content_type='text/plain')
+    return HttpResponse(r, content_type="text/plain")
 
 def find_branch_or_commit(ident):
     try:
@@ -44,19 +50,30 @@ def find_branch_or_commit(ident):
         except:
             return None
 
-
 def tree(request, commit, path):
-    ctx = {}
+    context = {}
 
-    # NOTE: this doesn't filter for subtree paths just yet
+    obj = find_branch_or_commit(commit)
+    if obj == None:
+        return HttpResponse("Invalid commit id")
 
-    return HttpResponse(str_tree(find_branch_or_commit(commit).tree),
-                        content_type="text/plain")
+    entry = utils.resolve_path(obj.tree, path)
+    if entry is None or entry.type != ObjectType.TREE:
+        return HttpResponse("invalid path")
+
+    context["entries"] = entry
+    context["repo"] = repo
+    context["path"] = request.path + ("" if request.path[-1:] == "/" else "/")
+    context["depth"] = len(path.strip("/").split("/"))
+    return render(request, "tree.html", context=context)
+
 
 def blob(request, commit, path):
     ctx = {}
 
     obj = find_branch_or_commit(commit)
+    if obj == none:
+        return HttpResponse("Invalid commit id")
 
     try:
         blob = obj.tree[path]
