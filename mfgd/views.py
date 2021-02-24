@@ -24,5 +24,6 @@ def index(request):
     for commit in repo.walk(branch_ref.target, GIT_SORT_TOPOLOGICAL):
         r += "%s\n%s\n%s\n" %(commit.tree_id, format_author(commit), commit.message)
         r += print_tree(commit.tree)
+        r += "\n"
 
     return HttpResponse(r, content_type='text/plain')
