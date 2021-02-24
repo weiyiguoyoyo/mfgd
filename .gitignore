@@ -1,2 +1,4 @@
 *.pyc
 __pycache__
+# We won't put the production db into the repo, only the secret ;)
+db.sqlite3
