@@ -1,5 +1,8 @@
 from django.http import HttpResponse
+from pathlib import Path
 from pygit2 import *
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 def format_author(commit):
     return "%s <%s>" %(commit.author.name, commit.author.email)
@@ -13,7 +16,7 @@ def print_tree(tree,indent=0):
     return r
 
 def index(request):
-    repo = Repository(".git")
+    repo = Repository(BASE_DIR / ".git")
     branch = next(iter(repo.branches.local))
     branch_ref = repo.references["refs/heads/%s" %branch]
 
