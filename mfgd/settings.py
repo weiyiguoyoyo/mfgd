@@ -24,7 +24,8 @@ SECRET_KEY = 'ssv(^nf@yu+v9wz291b391@pd&+qhp%u9$*0f$mql0!^!k@j-l'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [ "mfgd.pythonanywhere.com" ]
+# Allow both production URL and localhost
+ALLOWED_HOSTS = [ "mfgd.pythonanywhere.com", "localhost" ]
 
 
 # Application definition
@@ -112,10 +113,13 @@ USE_L10N = True
 
 USE_TZ = True
 
+# In this project we want the project staticfiles and production staticfiles
+# to be the same directory, this system checks bans that, so lets disable it
+SILENCED_SYSTEM_CHECKS = [ "staticfiles.E002" ]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / "static"
-
+STATICFILES_DIRS = [ BASE_DIR / "static" ]
 STATIC_URL = '/static/'
