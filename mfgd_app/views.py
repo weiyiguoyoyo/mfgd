@@ -32,19 +32,6 @@ def read_blob(blob):
     return "blob.html", content.decode()
 
 
-def gen_branches(oid):
-    class Branch:
-        def __init__(self, name, url):
-            self.name = name
-            self.url = url
-
-    l = list(repo.branches.local)
-    if oid not in l:
-        l.append(oid)
-
-    return [ Branch(name, "/view/" + name) for name in l ]
-
-
 def gen_crumbs(oid, path):
     class Crumb:
         def __init__(self, name, url):
@@ -62,6 +49,19 @@ def gen_crumbs(oid, path):
                 kwargs={"oid": oid, "path": relative_path})
         crumbs.append(Crumb(parts[off], url))
     return crumbs
+
+
+def gen_branches(oid):
+    class Branch:
+        def __init__(self, name, url):
+            self.name = name
+            self.url = url
+
+    l = list(repo.branches.local)
+    if oid not in l:
+        l.append(oid)
+
+    return [ Branch(name, "/view/" + name) for name in l ]
 
 
 def view(request, oid, path):
