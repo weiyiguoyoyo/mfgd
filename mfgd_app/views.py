@@ -14,7 +14,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Repo
 repo = pygit2.Repository(BASE_DIR / ".git")
 
-
 def index(request):
     return HttpResponse("this is the index page", content_type="text/plain")
 
@@ -30,7 +29,6 @@ def read_blob(blob):
         if blob.size > MAX_BLOB_SIZE:
             return "blob.html", ""
     return "blob.html", content.decode()
-
 
 def gen_branches(oid):
     class Branch:
@@ -62,7 +60,6 @@ def gen_crumbs(oid, path):
                 kwargs={"oid": oid, "path": relative_path})
         crumbs.append(Crumb(parts[off], url))
     return crumbs
-
 
 def view(request, oid, path):
     # First we normalize the path so libgit2 doesn't choke
