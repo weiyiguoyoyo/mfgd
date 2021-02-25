@@ -14,7 +14,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Repo
 repo = pygit2.Repository(BASE_DIR / ".git")
 
-
 def index(request):
     return HttpResponse("this is the index page", content_type="text/plain")
 
@@ -30,7 +29,6 @@ def read_blob(blob):
         if blob.size > MAX_BLOB_SIZE:
             return "blob.html", ""
     return "blob.html", content.decode()
-
 
 def gen_branches(oid):
     class Branch:
@@ -51,6 +49,22 @@ def gen_crumbs(oid, path):
             self.name = name
             self.url = url
 
+def tree_entries(target, tree, path):
+    clean_entries = []
+
+    for entry in tree:
+        entry_path = utils.normalize_path(path) + "/" + entry.name
+        change = utils.get_file_history(repo, target.id, entry_path)
+        wrapper = TreeEntry(entry, change)
+        clean_entries.append(wrapper)
+
+    clean_entries.sort(key=lambda entry: entry.name) # secondary sort by name
+    clean_entries.sort(key=lambda entry: entry.type) # primary sort by type
+    return clean_entries
+
+def read_blob(blob):
+    content = blob.data
+
         def __str__(self):
             return self.name
 
@@ -63,6 +77,30 @@ def gen_crumbs(oid, path):
         crumbs.append(Crumb(parts[off], url))
     return crumbs
 
+def gen_branches(oid):
+    class Branch:
+        def __init__(self, name, url):
+            self.name = name
+            self.url = url
+
+    l = list(repo.branches.local)
+    if oid not in l:
+        l.append(oid)
+
+    return [ Branch(name, "/view/" + name) for name in l ]
+
+def gen_crumbs(path):
+    class Crumb:
+        def __init__(self, name, url):
+            self.name = name
+            self.url = url
+        def __str__(self):
+            return self.name
+
+    crumbs = []
+    for part in utils.split_path(path):
+        crumbs.append(Crumb(part, "/".join(crumbs)))
+    return crumbs
 
 def view(request, oid, path):
     # First we normalize the path so libgit2 doesn't choke
