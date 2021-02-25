@@ -49,6 +49,22 @@ def gen_crumbs(oid, path):
             self.name = name
             self.url = url
 
+def tree_entries(target, tree, path):
+    clean_entries = []
+
+    for entry in tree:
+        entry_path = utils.normalize_path(path) + "/" + entry.name
+        change = utils.get_file_history(repo, target.id, entry_path)
+        wrapper = TreeEntry(entry, change)
+        clean_entries.append(wrapper)
+
+    clean_entries.sort(key=lambda entry: entry.name) # secondary sort by name
+    clean_entries.sort(key=lambda entry: entry.type) # primary sort by type
+    return clean_entries
+
+def read_blob(blob):
+    content = blob.data
+
         def __str__(self):
             return self.name
 
