@@ -1,3 +1,5 @@
+import binascii
+
 from django.http import HttpResponse
 from django.shortcuts import render
 from pathlib import Path
@@ -15,6 +17,7 @@ repo = pygit2.Repository(BASE_DIR / ".git")
 def format_author(commit):
     return "%s <%s>" % (commit.author.name, commit.author.email)
 
+
 def str_tree(tree, indent=0):
     r = ""
     for obj in tree:
@@ -22,6 +25,7 @@ def str_tree(tree, indent=0):
         if obj.type_str == "tree":
             r += str_tree(obj, indent + 1)
     return r
+
 
 def index(request):
     branch = next(iter(repo.branches.local))
@@ -35,6 +39,7 @@ def index(request):
 
     return HttpResponse(r, content_type="text/plain")
 
+
 def tree_entries(target, tree, path):
     clean_entries = []
     for entry in tree:
@@ -42,6 +47,15 @@ def tree_entries(target, tree, path):
         wrapper = StaticEntry(entry.name, entry.type, change)
         clean_entries.append(wrapper)
     return clean_entries
+
+
+def read_blob(blob):
+    content = blob.data
+
+    if blob.is_binary:
+        return "blob_binary.html", utils.hex_dump(content)
+    return "blob.html", content.decode()
+
 
 def view(request, oid, path):
     # First we normalize the path so libgit2 doesn't choke
@@ -63,8 +77,7 @@ def view(request, oid, path):
         template = "tree.html"
         context["entries"] = tree_entries(target, obj, path)
     elif obj.type == ObjectType.BLOB:
-        template = "blob.html"
-        context["code"] = obj.data.decode()
+        template, context["code"] = read_blob(obj)
     else:
         return HttpResponse("Unsupported object type")
 
