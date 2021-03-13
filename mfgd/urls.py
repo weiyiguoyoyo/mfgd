@@ -29,6 +29,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("logout/", views.user_logout, name="logout"),
     path("login/", views.user_login, name="login"),
+    path('register/', views.user_register, name='register'),
 ]
 
 handler404 = views.error_404
