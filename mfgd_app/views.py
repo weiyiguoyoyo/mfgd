@@ -8,12 +8,15 @@ from django import urls
 from pathlib import Path
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 import pygit2
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 
 from mfgd_app import utils
 from mfgd_app.types import ObjectType, TreeEntry, FileChange, Commit
 from mfgd_app.models import Repository
-from mfgd_app.forms import UserForm
+from mfgd_app.forms import UserForm, UserUpdateForm, ProfileUpdateForm
 
 
 def default_branch(db_repo_obj):
@@ -180,6 +183,39 @@ def user_logout(request):
     logout(request)
     return redirect("index")
 
+@login_required
+def user_profile(request):
+    if request.method == 'POST':
+        u_form = UserUpdateForm(request.POST, instance=request.user)
+        p_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.userprofile)
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            print("Your Profile has been updated!")
+            return redirect("profile")
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = ProfileUpdateForm(instance=request.user.userprofile)
+        
+    context = {
+        'u_form':u_form,
+        'p_form':p_form,
+        }
+    return render(request, 'profile.html', context)
+
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            return redirect('change_password')
+    else:
+        form = PasswordChangeForm(request.user)
+        
+    context = {'form': form}
+    
+    return render(request, 'change_password.html', context)
 
 def info(request, repo_name, oid):
     db_repo_obj = Repository.objects.get(name=repo_name)
@@ -265,6 +301,8 @@ def chain(request, repo_name, oid):
         "commits": commits
     }
     return render(request, "chain.html", context=context)
+
+
 
 
 def error_404(request, exception):

@@ -26,7 +26,7 @@ SECRET_KEY = "ssv(^nf@yu+v9wz291b391@pd&+qhp%u9$*0f$mql0!^!k@j-l"
 DEBUG = True
 
 # Allow both production URL and localhost
-ALLOWED_HOSTS = ["mfgd.pythonanywhere.com", "localhost"]
+ALLOWED_HOSTS = ["mfgd.pythonanywhere.com", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "mfgd_app",
+    'crispy_forms',
 ]
 
 MIDDLEWARE = [
@@ -101,6 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_PROFULE_MODULE = "mfgd.UserProfile"
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -123,5 +125,11 @@ SILENCED_SYSTEM_CHECKS = ["staticfiles.E002"]
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / "static"
+
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = '/media/'
+
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_URL = "/static/"
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
