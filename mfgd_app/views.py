@@ -1,5 +1,5 @@
 import binascii
-import datetime as dt
+import re
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -12,9 +12,9 @@ from django.shortcuts import get_object_or_404
 import pygit2
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+import mpygit
 
 from mfgd_app import utils
-from mfgd_app.types import ObjectType, TreeEntry, FileChange, Commit
 from mfgd_app.models import Repository
 from mfgd_app.forms import UserForm, UserUpdateForm, ProfileUpdateForm
 
@@ -32,25 +32,22 @@ def index(request):
     for i, db_repo_obj in enumerate(repo_list):
         # We need to stick the default branch name to each repo here
         repo_list[i].default_branch = default_branch(db_repo_obj)
-        # Only select the first 30 chacters in case of overflow
-        repo_list[i].description = repo_list[i].description[0:30]
-    # Load the repos data here
     context_dict["repositories"] = repo_list
     return render(request, "index.html", context_dict)
 
 
 def read_blob(blob):
     # 100K
-    MAX_BLOB_SIZE = 100 * 1 << 10
+    MAX_BLOB_SIZE = 100 * 5 << 10
 
     content = blob.data
     if blob.is_binary:
         if blob.size > MAX_BLOB_SIZE:
-            return "blob_binary.html", ""
+            return "blob_binary.html", None
         return "blob_binary.html", utils.hex_dump(content)
     else:
         if blob.size > MAX_BLOB_SIZE:
-            return "blob.html", ""
+            return "blob.html", None
     return "blob.html", content.decode()
 
 
@@ -80,7 +77,7 @@ def gen_branches(repo_name, repo, oid):
             self.name = name
             self.url = url
 
-    l = list(repo.branches.local)
+    l = list(repo.heads)
     if oid not in l:
         l.append(oid)
 
@@ -90,18 +87,18 @@ def gen_branches(repo_name, repo, oid):
 def view(request, repo_name, oid, path):
     # Find the repo object in the db
     db_repo_obj = Repository.objects.get(name=repo_name)
-    # Open a pygit2 repo object to the requested repo
-    repo = pygit2.Repository(db_repo_obj.path)
+    # Open a repo object to the requested repo
+    repo = mpygit.Repository(db_repo_obj.path)
     # First we normalize the path so libgit2 doesn't choke
     path = utils.normalize_path(path)
 
     # Find commit in the repo
-    target = utils.find_branch_or_commit(repo, oid)
-    if target is None:
+    commit = utils.find_branch_or_commit(repo, oid)
+    if commit is None or not isinstance(commit, mpygit.Commit):
         return HttpResponse("Invalid commit ID")
 
     # Resolve path inside commit
-    obj = utils.resolve_path(target.tree, path)
+    obj = utils.resolve_path(repo, commit.tree, path)
     if obj == None:
         return HttpResponse("Invalid path")
 
@@ -112,19 +109,19 @@ def view(request, repo_name, oid, path):
         "branches": gen_branches(repo_name, repo, oid),
         "crumbs": gen_crumbs(repo_name, oid, path),
     }
+
     # Display correct template
-    if obj.type == ObjectType.TREE:
+    if isinstance(obj, mpygit.Tree):
         template = "tree.html"
-        context["entries"] = utils.tree_entries(repo, target, obj, path)
-    elif obj.type == ObjectType.BLOB:
+        context["entries"] = utils.tree_entries(repo, commit, path, obj)
+    elif isinstance(obj, mpygit.Blob):
         template, code = read_blob(obj)
         if template == "blob.html":
             context["code"] = utils.highlight_code(path, code)
         else:
             context["code"] = code
-        commit = utils.get_file_history(repo, target, path)
+        commit = utils.get_file_history(repo, commit, path)
         context["change"] = commit
-        context["change_subject"] = commit.message.split("\n")[0]
     else:
         return HttpResponse("Unsupported object type")
 
@@ -218,87 +215,55 @@ def change_password(request):
     return render(request, 'change_password.html', context)
 
 def info(request, repo_name, oid):
-    db_repo_obj = Repository.objects.get(name=repo_name)
-    # Open a pygit2 repo object to the requested repo
-    repo = pygit2.Repository(db_repo_obj.path)
+    class FileChange:
+        def __init__(self, path, patch, status):
+            self.path = path
+            self.patch = utils.highlight_code("name.diff", patch)
+            self.status = status
+            self.deleted = status == "D"
 
-    obj = utils.find_branch_or_commit(repo, oid)
-    if obj is None:
+            # The line stats are not very elegant but difflib is kind of limited
+            insert = len(re.findall(r"^\+", patch, re.MULTILINE)) - 1
+            delete = len(re.findall(r"^-", patch, re.MULTILINE)) - 1
+            self.insertion = f"++{insert}"
+            self.deletion = f"--{delete}"
+
+    db_repo_obj = Repository.objects.get(name=repo_name)
+    repo = mpygit.Repository(db_repo_obj.path)
+
+    commit = utils.find_branch_or_commit(repo, oid)
+    if commit is None or not isinstance(commit, mpygit.Commit):
         return HttpResponse("Invalid branch or commit ID")
-    elif isinstance(obj, pygit2.Branch):
-        commit = repo.get(pygti2.Branch.target)
-    else:
-        commit = obj
 
     changes = []
-    timestamp = dt.datetime.utcfromtimestamp(commit.commit_time).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-    message_subject, message_body = commit.message.split("\n", maxsplit=1)
-
-    # not initial commit
-    if len(commit.parents):
-        diff = repo.diff(commit.parents[0], commit)
-        for delta in diff.deltas:
-            new = repo.get(delta.new_file.id)
-            old = repo.get(delta.old_file.id)
-
-            if new is None and old is None:
-                continue
-
-            status_char = delta.status_char()
-            status = delta.status
-
-            diff = utils.get_patch(repo, new, old)
-            if old is None:
-                path = delta.new_file.path
-            else:
-                path = delta.old_file.path
-            fc = FileChange(diff, status_char, status, path, new, old)
-            fc.patch = utils.highlight_code("name.diff", fc.patch)
-            changes.append(fc)
-    # initial commit
-    else:
-        for entry in utils.tree_entries(repo, commit, commit.tree, "/"):
-            if entry.type != ObjectType.BLOB:
-                continue
-            patch = utils.get_patch(repo, entry.entry)
-            fc = FileChange(patch, "A", pygit2.GIT_DELTA_ADDED, entry.path, entry.entry, None)
-            fc.patch = utils.highlight_code("name.diff", fc.patch)
-            changes.append(fc)
+    parent = repo[commit.parents[0]] if len(commit.parents) > 0 else None
+    diffs = utils.diff_commits(repo, parent, commit)
+    for path, patch, status in diffs:
+        changes.append(FileChange(path, patch, status))
 
     context = {
         "repo_name": repo_name,
         "oid": oid,
-        "author": commit.author,
         "commit": commit,
-        "commit_timestamp": timestamp,
         "changes": changes,
-        "message": commit.message,
-        "message_subject": message_subject,
-        "message_body": message_body,
     }
+
     return render(request, "commit.html", context=context)
 
 
 def chain(request, repo_name, oid):
     db_repo_obj = Repository.objects.get(name=repo_name)
-    # Open a pygit2 repo object to the requested repo
-    repo = pygit2.Repository(db_repo_obj.path)
+    # Open a repo object to the requested repo
+    repo = mpygit.Repository(db_repo_obj.path)
 
     obj = utils.find_branch_or_commit(repo, oid)
     if obj is None:
         return HttpResponse("Invalid branch or commit ID")
-    elif isinstance(obj, pygit2.Branch):
-        commit = repo.get(pygti2.Branch.target)
-    else:
-        commit = obj
 
-    commits = [Commit(c) for c in repo.walk(commit.id)]
     context = {
         "repo_name": repo_name,
         "oid": oid,
-        "commits": commits
+        "commits": utils.walk(repo, obj.oid)
     }
     return render(request, "chain.html", context=context)
 
