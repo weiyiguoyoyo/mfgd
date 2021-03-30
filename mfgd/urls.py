@@ -25,15 +25,22 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("", views.index, name="index"),
     re_path(
-        r"(?P<repo_name>\w+)/view/(?P<oid>\w+)/(?P<path>\S*)", views.view, name="view"
+        r"(?P<repo_name>[-_.\w]+)/view/(?P<oid>\w+)/(?P<path>\S*)/?", views.view, name="view"
     ),
-    re_path(r"(?P<repo_name>\w+)/info/(?P<oid>\w+)/?", views.info, name="info"),
-    re_path(r"(?P<repo_name>\w+)/chain/(?P<oid>\w+)/?", views.chain, name="chain"),
+    re_path(r"(?P<repo_name>[-_.\w]+)/view/?", views.view_default, name="view_default"),
+    re_path(r"(?P<repo_name>[-_.\w]+)/info/(?P<oid>\w+)/?", views.info, name="info"),
+    re_path(r"(?P<repo_name>[-_.\w]+)/chain/(?P<oid>\w+)/?", views.chain, name="chain"),
+    re_path(r"(?P<repo_name>[-_.\w]+)/chain/?", views.chain_default, name="chain_default"),
+    re_path(r"(?P<repo_name>[-_.\w]+)/manage/?", views.manage_repo, name="manage_repo"),
     path("admin/", admin.site.urls),
     path("logout/", views.user_logout, name="logout"),
     path("login/", views.user_login, name="login"),
-    path('register/', views.user_register, name='register'),
     path('profile/', views.user_profile, name='profile'),
+    path("register/", views.user_register, name="register"),
+    path("manage/", views.manage, name="manage"),
+    path("manage/delete_repo/<str:repo_name>/", views.delete_repo, name="delete_repo"),
+    path("add_repo/", views.add_repo, name="add_repo"),
+    path("add_repo_form/", views.add_repo_form, name="add_repo_form")
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -26,7 +26,7 @@ SECRET_KEY = "ssv(^nf@yu+v9wz291b391@pd&+qhp%u9$*0f$mql0!^!k@j-l"
 DEBUG = True
 
 # Allow both production URL and localhost
-ALLOWED_HOSTS = ["mfgd.pythonanywhere.com", "localhost"]
+ALLOWED_HOSTS = ["mfgd.pythonanywhere.com", "localhost", "127.0.0.1"]
 
 
 # Application definition
