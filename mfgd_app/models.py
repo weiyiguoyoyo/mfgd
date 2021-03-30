@@ -27,8 +27,8 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.username
     
-    def save(self):
-        super().save()
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
