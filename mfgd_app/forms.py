@@ -15,6 +15,7 @@ class UserForm(forms.ModelForm):
         )
 
 class UserUpdateForm(forms.ModelForm):
+    username = forms.CharField(help_text=False)
     email = forms.EmailField()
     
     class Meta:
