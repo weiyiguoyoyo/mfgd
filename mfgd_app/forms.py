@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import UserProfile
+from mfgd_app.models import Repository
+
 
 
 class UserForm(forms.ModelForm):
@@ -13,6 +15,7 @@ class UserForm(forms.ModelForm):
             "email",
             "password",
         )
+
 
 class UserUpdateForm(forms.ModelForm):
     username = forms.CharField(help_text=False)
@@ -27,3 +30,14 @@ class ProfileUpdateForm(forms.ModelForm):
         model = UserProfile
         fields = ['image']
         
+class RepoForm(forms.ModelForm):
+
+	class Meta:
+		model = Repository
+		fields = (
+			"name",
+			"path",
+			"description",
+			"isPublic",
+		)
+
