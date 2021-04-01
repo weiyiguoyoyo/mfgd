@@ -23,18 +23,22 @@ class UserProfile(models.Model):
 
     isAdmin = models.BooleanField(default=False)
     repositories = models.ManyToManyField(Repository, through="CanAccess")
+    
+    def save(self, *args, **kwargs):
+        super(UserProfile, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.user.username
     
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
 @receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
+def create_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
+        
+@receiver(post_save, sender=User)        
+def save_profile(sender, instance, **kwargs):
     instance.userprofile.save()
+
 
 class CanAccess(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)

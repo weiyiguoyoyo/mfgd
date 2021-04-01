@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import UserProfile
 from mfgd_app.models import Repository
+from django.contrib.auth.forms import PasswordChangeForm
 
 
 
@@ -15,15 +16,17 @@ class UserForm(forms.ModelForm):
             "email",
             "password",
         )
-
-
-class UserUpdateForm(forms.ModelForm):
-    username = forms.CharField(help_text=False)
-    email = forms.EmailField()
     
+class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'email']
+        
+    def __init__(self, *args, **kwargs):
+        super(UserUpdateForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs['class'] = 'form-control'
+            self.fields['username'].help_text = False
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
@@ -31,6 +34,14 @@ class ProfileUpdateForm(forms.ModelForm):
         fields = ['image']
         
 
+class PasswordForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super(PasswordForm, self).__init__(*args, **kwargs)
+        for field in ('old_password', 'new_password1', 'new_password2'):
+            self.fields[field].widget.attrs['class'] = 'form-control'
+            self.fields['new_password2'].label ='Confirm'
+            self.fields['new_password1'].help_text=False
+    
 class RepoForm(forms.ModelForm):
 
 	class Meta:

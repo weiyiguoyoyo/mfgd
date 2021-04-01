@@ -9,16 +9,16 @@
 }
 
 .profile_body {
-    width: 530px;
+    width: 500px;
     margin: 110px auto 110px;
     background-color: #f0f0f0;
     padding: 0 20px 20px;
     border-radius: 6px;
-
 }
 
 .container {
     text-align: center;
+
 }
 
 .profile_img {
@@ -30,6 +30,7 @@
     top: -60px;
 }
 
+
 h2 {
     font-size: 22px;
     font-weight: 600;
@@ -40,4 +41,26 @@ p {
     color: grey;
     font-size: 14px;
     margin-bottom: 20px;
+}
+.form-control {
+    width:300px;
+    margin-left: 5px;
+    margin-top: 20px;
+    margin-bottom :10px;
+    padding: 7px;
+}
+
+
+.table {
+    margin-left: 8px;
+}
+
+.button {
+    padding: 9px 16px;
+    margin-top:15px;
+    margin-left:130px;
+    margin-bottom:10px;
+}
+.button:hover {
+    border-color: rgba(255,255,255,1);
 }

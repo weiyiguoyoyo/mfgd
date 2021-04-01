@@ -17,13 +17,21 @@ Profile
         <h2 >{{ user.username }}</h2>
         <p>{{ user.email }}</p> 
     </div>
-
-    <form method="POST" action="{% url 'profile' %}" id="profileform">
+    <form method="POST" action="{% url 'profile' %}" id="form1" enctype="multipart/form-data">
         {% csrf_token %}
-        {{ u_form.as_p }}  
-        {{ form.as_p }}
-        {{ p_form.as_p }}
+        <table class="table">
+            {{ u_form.as_table }}
+            {{ p_form.as_table }}
+        </table>
+        <button class="button" type="submit" form="form1" name="change_profile">Update Profile</button>
     </form>
-    <button class="button" form="profileform" type="submit">Update</button>
+    <form method="POST" action="{% url 'profile' %}" id="form2">
+        {% csrf_token %}
+        <table> 
+            {{ pw_form }}
+        </table>
+    </form>
+    <button class="button" type="submit" form="form2" name="change_password">Update Password</button>
 </div>
+
 {% endblock %}

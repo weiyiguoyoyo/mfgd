@@ -35,15 +35,13 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("logout/", views.user_logout, name="logout"),
     path("login/", views.user_login, name="login"),
-    path('profile/', views.user_profile, name='profile'),
+    path("profile/", views.user_profile, name="profile"),
     path("register/", views.user_register, name="register"),
     path("manage/", views.manage, name="manage"),
     path("manage/delete_repo/<str:repo_name>/", views.delete_repo, name="delete_repo"),
     path("add_repo/", views.add_repo, name="add_repo"),
     path("add_repo_form/", views.add_repo_form, name="add_repo_form")
-]
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler404 = views.error_404
 handler500 = views.error_500
